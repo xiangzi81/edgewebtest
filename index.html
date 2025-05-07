@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My little game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>My Little Game</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,28 +11,37 @@
       background-color: #111;
       color: white;
       margin: 0;
-      padding: 20px;
+      padding: 1em;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
     }
-    .settings {
-      margin-bottom: 20px;
-    }
-    label, input {
-      margin: 5px;
+    .settings label, .settings input {
+      font-size: 1.2em;
+      margin: 0.3em 0;
       display: block;
+      width: 100%;
+    }
+    .settings input {
+      padding: 0.5em;
+    }
+    .settings button {
+      font-size: 1.2em;
+      padding: 0.6em 1.2em;
+      margin-top: 0.5em;
+      width: 100%;
     }
     #progress-container {
       width: 100%;
+      max-width: 500px;
     }
     #progress {
       width: 100%;
-      height: 50px;
+      height: 40px;
       margin: 0 auto;
-      border-radius: 25px;
+      border-radius: 20px;
       background: #555;
       overflow: hidden;
     }
@@ -43,201 +52,198 @@
       transition: width 1s linear;
     }
     #status {
-      font-size: 2em;
-      margin-bottom: 20px;
-      line-height: 1.4;
+      font-size: 1.5em;
+      margin-bottom: 1em;
     }
     #countdown {
-      font-size: 2.5em;
-      margin-top: 20px;
+      font-size: 2em;
+      margin-top: 0.5em;
     }
     .hidden {
       display: none;
     }
     #auth-container input {
-      padding: 10px;
-      font-size: 1em;
+      padding: 0.8em;
+      font-size: 1.2em;
+      width: 100%;
+      max-width: 300px;
     }
     #auth-container button {
-      padding: 10px 20px;
-      font-size: 1em;
-      margin-top: 10px;
-      cursor: pointer;
+      padding: 0.6em 1.2em;
+      font-size: 1.2em;
+      margin-top: 1em;
     }
   </style>
 </head>
 <body>
 
-  <!-- 密码验证部分 -->
-  <div id="auth-container">
-    <h2>请输入密码进入</h2>
-    <input type="password" id="passwordInput" placeholder="密码" />
-    <button onclick="checkPassword()">进入</button>
-    <p id="auth-error" style="color:red;"></p>
+<div id="auth-container">
+  <h2>请输入密码进入</h2>
+  <input type="password" id="passwordInput" placeholder="密码" />
+  <button onclick="checkPassword()">进入</button>
+  <p id="auth-error" style="color:red;"></p>
+</div>
+
+<div id="main-container" class="hidden">
+  <div class="settings">
+    <label>总时间（分钟）:</label><input id="totalTime" type="number" value="10" min="1" max="60" />
+    <label>释放机会概率（%）:</label><input id="chanceTrigger" type="number" value="30" min="0" max="100" />
+    <label>释放成功概率（%）:</label><input id="chanceAllow" type="number" value="50" min="0" max="100" />
+    <label>释放倒计时（秒）:</label><input id="releaseDuration" type="number" value="15" min="5" max="60" />
+    <button onclick="startGame()">开始</button>
   </div>
 
-  <!-- 游戏主界面 -->
-  <div id="main-container" class="hidden">
-    <div class="settings">
-      <label>总时间（分钟）:</label><input id="totalTime" type="number" value="10" min="1" max="60" />
-      <label>释放机会概率（%）:</label><input id="chanceTrigger" type="number" value="30" min="0" max="100" />
-      <label>释放成功概率（%）:</label><input id="chanceAllow" type="number" value="50" min="0" max="100" />
-      <label>释放倒计时（秒）:</label><input id="releaseDuration" type="number" value="15" min="5" max="60" />
-      <button onclick="startGame()">开始</button>
-    </div>
-
-    <div id="progress-container">
-      <div id="status">等待开始...</div>
-      <div id="progress"><div id="bar"></div></div>
-    </div>
-    <div id="countdown"></div>
-
-    <!-- 音效部分 -->
-    <audio id="beep" src="https://freesound.org/data/previews/316/316914_5111566-lq.mp3"></audio>
-    <audio id="startGreen" src="https://freesound.org/data/previews/256/256113_4486188-lq.mp3"></audio>
-    <audio id="startRed" src="https://freesound.org/data/previews/178/178110_3248244-lq.mp3"></audio>
-    <audio id="releaseAllowed" src="https://freesound.org/data/previews/522/522631_11304677-lq.mp3"></audio>
-    <audio id="releaseDenied" src="https://freesound.org/data/previews/320/320655_5260877-lq.mp3"></audio>
+  <div id="progress-container">
+    <div id="status">等待开始...</div>
+    <div id="progress"><div id="bar"></div></div>
   </div>
+  <div id="countdown"></div>
 
-  <script>
-    const correctPassword = "00000000";
+  <!-- 音效 -->
+  <audio id="bell" src="https://freesound.org/data/previews/331/331912_3248244-lq.mp3"></audio>
+  <audio id="releaseAllowed" src="https://freesound.org/data/previews/522/522631_11304677-lq.mp3"></audio>
+  <audio id="releaseDenied" src="https://freesound.org/data/previews/320/320655_5260877-lq.mp3"></audio>
+</div>
 
-    function checkPassword() {
-      const input = document.getElementById("passwordInput").value;
-      const errorText = document.getElementById("auth-error");
-
-      if (input === correctPassword) {
-        document.getElementById("auth-container").style.display = "none";
-        document.getElementById("main-container").classList.remove("hidden");
-      } else {
-        errorText.textContent = "密码错误，请重试。";
-      }
+<script>
+  const correctPassword = "00000000";
+  function checkPassword() {
+    const input = document.getElementById("passwordInput").value;
+    const errorText = document.getElementById("auth-error");
+    if (input === correctPassword) {
+      document.getElementById("auth-container").style.display = "none";
+      document.getElementById("main-container").classList.remove("hidden");
+    } else {
+      errorText.textContent = "密码错误，请重试。";
     }
+  }
 
-    let mode = 'green';
-    let totalDuration = 0;
-    let startTime;
-    let bar, status, countdown;
-    let releaseTriggered = false;
-    let chanceTrigger, chanceAllow, releaseDuration;
+  let totalDuration, chanceTrigger, chanceAllow, releaseDuration;
+  let startTime;
+  let mode = 'green';
+  let bar, status, countdown;
+  let interval;
+  let inReleasePhase = false;
 
-    const greenMessages = {
-      early: ['慢慢撸，现在只是热身', '现在，用手撸动你的鸡巴', '继续撸！', '抓住你的鸡巴，从上到下撸动它', 'MIAO'],
-      mid: ['继续保持', '专注感觉', '别太快', '平稳前进', '享受过程'],
-      late: ['接近边缘', '坚持住', '深呼吸', '保持冷静', '准备高潮']
-    };
-    const redMessages = {
-      early: ['暂停触碰', '放松一下', '等待信号', '深吸一口气', '稍作停顿'],
-      mid: ['保持冷静', '停止动作', '稍作休息', '控制呼吸', '等待时机'],
-      late: ['完全停止', '控制自己', '准备结束', '放松身体', '保持耐心']
-    };
+  const greenMessages = {
+    early: ['慢慢撸，现在只是热身', '抓住你的鸡巴，从上到下撸动它'],
+    mid: ['继续保持，别太快', '平稳前进'],
+    late: ['坚持住，准备高潮', '深呼吸，保持冷静']
+  };
 
-    const phaseTimes = {
-      green: {
-        early: [45, 60],
-        mid: [15, 30],
-        late: [5, 20]
-      },
-      red: {
-        early: [10, 20],
-        mid: [20, 30],
-        late: [30, 60]
-      }
-    };
+  const redMessages = {
+    early: ['暂停触碰，深呼吸'],
+    mid: ['保持冷静，等待信号'],
+    late: ['放松身体，控制自己']
+  };
 
-    function playSound(id) {
-      const audio = document.getElementById(id);
-      audio.currentTime = 0;
-      audio.play();
+  function playSound(id, repeat = 1) {
+    const sound = document.getElementById(id);
+    if (!sound) return;
+    sound.currentTime = 0;
+    sound.play();
+    if (repeat > 1) {
+      setTimeout(() => playSound(id, repeat - 1), 400);
     }
+  }
 
-    function startGame() {
-      totalDuration = parseInt(document.getElementById("totalTime").value) * 60 * 1000;
-      chanceTrigger = parseInt(document.getElementById("chanceTrigger").value);
-      chanceAllow = parseInt(document.getElementById("chanceAllow").value);
-      releaseDuration = parseInt(document.getElementById("releaseDuration").value);
+  function startGame() {
+    totalDuration = parseInt(document.getElementById("totalTime").value) * 60 * 1000;
+    chanceTrigger = parseInt(document.getElementById("chanceTrigger").value);
+    chanceAllow = parseInt(document.getElementById("chanceAllow").value);
+    releaseDuration = parseInt(document.getElementById("releaseDuration").value);
 
-      bar = document.getElementById("bar");
-      status = document.getElementById("status");
-      countdown = document.getElementById("countdown");
-      startTime = Date.now();
+    bar = document.getElementById("bar");
+    status = document.getElementById("status");
+    countdown = document.getElementById("countdown");
 
-      document.querySelector('.settings').classList.add('hidden');
+    document.querySelector('.settings').classList.add('hidden');
+    startTime = Date.now();
 
-      mode = 'green';
-      bar.style.background = 'green';
-      status.innerText = getRandomMessage(0, 'green');
-      startPhase();
-    }
+    status.innerText = "准备开始...";
+    nextPhase();
+  }
 
-    function getPhase(progress) {
-      if (progress <= 0.3) return 'early';
-      if (progress <= 0.8) return 'mid';
-      return 'late';
-    }
+  function getPhaseProgress() {
+    const elapsed = Date.now() - startTime;
+    const progress = elapsed / totalDuration;
+    if (progress <= 0.3) return 'early';
+    if (progress <= 0.8) return 'mid';
+    return 'late';
+  }
 
-    function getRandomMessage(progress, mode) {
-      const phase = getPhase(progress);
-      const messages = mode === 'green' ? greenMessages : redMessages;
-      return messages[phase][Math.floor(Math.random() * messages[phase].length)];
-    }
+  function getRandomMessage(mode) {
+    const phase = getPhaseProgress();
+    const messages = mode === 'green' ? greenMessages : redMessages;
+    const msgList = messages[phase];
+    return msgList[Math.floor(Math.random() * msgList.length)];
+  }
 
-    function getRandomInt(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
+  function nextPhase() {
+    if (interval) clearInterval(interval);
 
-    function startPhase() {
-      const elapsed = Date.now() - startTime;
-      const progress = elapsed / totalDuration;
-      const phase = getPhase(progress);
-      const [min, max] = phaseTimes[mode][phase];
-      const duration = getRandomInt(min, max);
-      bar.style.background = mode;
-      status.innerText = getRandomMessage(progress, mode);
-      countdownPhase(duration, phase);
-    }
+    const now = Date.now();
+    const elapsed = now - startTime;
+    const progress = elapsed / totalDuration;
+    const currentPhase = getPhaseProgress();
 
-    function countdownPhase(seconds, currentPhase, final = false) {
-      let current = seconds;
-      let interval = setInterval(() => {
-        bar.style.width = (current / seconds) * 100 + '%';
-        countdown.innerText = current + ' 秒';
-
-        if (current <= 5 && current > 0) playSound('beep');
-
-        if (--current < 0) {
-          clearInterval(interval);
-          handlePhaseEnd(currentPhase);
+    if (progress > 1 && currentPhase === 'late' && mode === 'green') {
+      if (Math.random() < chanceTrigger / 100) {
+        inReleasePhase = true;
+        const allow = Math.random() < chanceAllow / 100;
+        if (allow) {
+          status.innerText = '你可以释放了！';
+          playSound('releaseAllowed');
+        } else {
+          status.innerText = '不太走运，不能释放';
+          playSound('releaseDenied');
         }
-      }, 1000);
+        startCountdown(releaseDuration, true);
+        return;
+      }
     }
 
-    function handlePhaseEnd(currentPhase) {
-      const elapsed = Date.now() - startTime;
-      const progress = elapsed / totalDuration;
+    mode = (mode === 'green') ? 'red' : 'green';
+    bar.style.background = (mode === 'green') ? 'green' : 'red';
+    status.innerText = getRandomMessage(mode);
 
-      if (mode === 'green' && currentPhase === 'late') {
-        if (!releaseTriggered && Math.random() < chanceTrigger / 100) {
-          releaseTriggered = true;
-          const allow = Math.random() < chanceAllow / 100;
-          if (allow) {
-            status.innerText = '你可以释放了！';
-            playSound('releaseAllowed');
-            countdownPhase(releaseDuration, 'green', true);
-          } else {
-            status.innerText = '不太走运，不能释放';
-            playSound('releaseDenied');
-            countdown.innerText = '';
-          }
-          return;
+    const duration = getPhaseDuration(currentPhase, mode);
+    playSound('bell', 2);
+    startCountdown(duration, false);
+  }
+
+  function getPhaseDuration(phase, mode) {
+    const ranges = {
+      green: { early: [45, 60], mid: [15, 30], late: [5, 20] },
+      red: { early: [10, 20], mid: [20, 30], late: [30, 60] }
+    };
+    const [min, max] = ranges[mode][phase];
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function startCountdown(seconds, isFinal = false) {
+    let current = seconds;
+    countdown.innerText = current + " 秒";
+    bar.style.width = '100%';
+
+    interval = setInterval(() => {
+      current--;
+      countdown.innerText = current + " 秒";
+      bar.style.width = (current / seconds * 100) + "%";
+
+      if (current === 3) playSound('bell');
+
+      if (current <= 0) {
+        clearInterval(interval);
+        if (isFinal) {
+          status.innerText += "\n游戏结束。";
+        } else {
+          nextPhase();
         }
       }
+    }, 1000);
+  }
+</script>
 
-      // 切换模式并继续
-      mode = mode === 'green' ? 'red' : 'green';
-      startPhase();
-    }
-  </script>
 </body>
 </html>
