@@ -35,7 +35,7 @@
     }
     #progress-container {
       width: 100%;
-      max-width: 500px;
+      max-width: 1000px; /* 更长的进度条 */
       margin-top: 1em;
     }
     #progress {
@@ -45,12 +45,14 @@
       border-radius: 20px;
       overflow: hidden;
       box-sizing: border-box;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* 添加阴影 */
     }
     #bar {
       height: 100%;
       width: 100%;
       background: green;
-      transition: width 1s linear;
+      transition: width 0.1s linear;
+      border-radius: 20px; /* 保持圆角一致 */
     }
     #status {
       font-size: 1.5em;
@@ -77,154 +79,189 @@
   </style>
 </head>
 <body>
+  <audio id="bellSound" src="assets/sounds/bell.mp3" preload="auto"></audio>
+  <audio id="releaseSound" src="assets/sounds/release.mp3" preload="auto"></audio>
 
-<div id="auth-container">
-  <h2>请输入密码进入</h2>
-  <input type="password" id="passwordInput" placeholder="密码" />
-  <button onclick="checkPassword()">进入</button>
-  <p id="auth-error" style="color:red;"></p>
-</div>
-
-<div id="main-container" class="hidden">
-  <div class="settings">
-    <label>总时间（分钟）:</label><input id="totalTime" type="number" value="10" min="1" max="60" />
-    <label>释放机会概率（%）:</label><input id="chanceTrigger" type="number" value="30" min="0" max="100" />
-    <label>释放成功概率（%）:</label><input id="chanceAllow" type="number" value="50" min="0" max="100" />
-    <label>释放倒计时（秒）:</label><input id="releaseDuration" type="number" value="15" min="5" max="60" />
-    <button onclick="startGame()">开始</button>
+  <div id="auth-container">
+    <h2>请输入密码进入</h2>
+    <input type="password" id="passwordInput" placeholder="密码" />
+    <button onclick="checkPassword()">进入</button>
+    <p id="auth-error" style="color:red;"></p>
   </div>
 
-  <div id="progress-container">
-    <div id="status">等待开始...</div>
-    <div id="progress"><div id="bar"></div></div>
+  <div id="main-container" class="hidden">
+    <div class="settings">
+      <label>总时间（分钟）:</label><input id="totalTime" type="number" value="10" min="1" max="60" />
+      <label>释放机会概率（%）:</label><input id="chanceTrigger" type="number" value="30" min="0" max="100" />
+      <label>释放成功概率（%）:</label><input id="chanceAllow" type="number" value="50" min="0" max="100" />
+      <label>释放倒计时（秒）:</label><input id="releaseDuration" type="number" value="15" min="5" max="60" />
+      <button onclick="startGame()">开始</button>
+    </div>
+
+    <div id="progress-container">
+      <div id="status">等待开始...</div>
+      <div id="progress"><div id="bar"></div></div>
+    </div>
+    <div id="countdown"></div>
   </div>
-  <div id="countdown"></div>
-</div>
 
-<script>
-  const correctPassword = "00000000";
-  function checkPassword() {
-    const input = document.getElementById("passwordInput").value;
-    const errorText = document.getElementById("auth-error");
-    if (input === correctPassword) {
-      document.getElementById("auth-container").style.display = "none";
-      document.getElementById("main-container").classList.remove("hidden");
-    } else {
-      errorText.textContent = "密码错误，请重试。";
-    }
-  }
-
-  let totalDuration, chanceTrigger, chanceAllow, releaseDuration;
-  let startTime;
-  let mode = 'green';
-  let bar, status, countdown;
-  let interval;
-  let inReleasePhase = false;
-
-  const greenMessages = {
-    early: ['慢慢撸，现在只是热身', '抓住你的鸡巴，从上到下撸动它'],
-    mid: ['继续保持，别太快', '平稳前进'],
-    late: ['坚持住，准备高潮', '深呼吸，保持冷静']
-  };
-
-  const redMessages = {
-    early: ['暂停触碰，深呼吸'],
-    mid: ['保持冷静，等待信号'],
-    late: ['放松身体，控制自己']
-  };
-
-  function startGame() {
-    totalDuration = parseInt(document.getElementById("totalTime").value) * 60 * 1000;
-    chanceTrigger = parseInt(document.getElementById("chanceTrigger").value);
-    chanceAllow = parseInt(document.getElementById("chanceAllow").value);
-    releaseDuration = parseInt(document.getElementById("releaseDuration").value);
-
-    bar = document.getElementById("bar");
-    status = document.getElementById("status");
-    countdown = document.getElementById("countdown");
-
-    document.querySelector('.settings').classList.add('hidden');
-    startTime = Date.now();
-
-    status.innerText = "准备开始...";
-    nextPhase();
-  }
-
-  function getPhaseProgress() {
-    const elapsed = Date.now() - startTime;
-    const progress = elapsed / totalDuration;
-    if (progress <= 0.3) return 'early';
-    if (progress <= 0.8) return 'mid';
-    return 'late';
-  }
-
-  function getRandomMessage(mode) {
-    const phase = getPhaseProgress();
-    const messages = mode === 'green' ? greenMessages : redMessages;
-    const msgList = messages[phase];
-    return msgList[Math.floor(Math.random() * msgList.length)];
-  }
-
-  function nextPhase() {
-    if (interval) clearInterval(interval);
-
-    const now = Date.now();
-    const elapsed = now - startTime;
-    const progress = elapsed / totalDuration;
-    const currentPhase = getPhaseProgress();
-
-    if (progress > 1 && currentPhase === 'late' && mode === 'green') {
-      if (Math.random() < chanceTrigger / 100) {
-        inReleasePhase = true;
-        const allow = Math.random() < chanceAllow / 100;
-        if (allow) {
-          status.innerText = '你可以释放了！';
-        } else {
-          status.innerText = '不太走运，不能释放';
-        }
-        startCountdown(releaseDuration, true);
-        return;
+  <script>
+    const correctPassword = "00000000";
+    function checkPassword() {
+      const input = document.getElementById("passwordInput").value;
+      const errorText = document.getElementById("auth-error");
+      if (input === correctPassword) {
+        document.getElementById("auth-container").style.display = "none";
+        document.getElementById("main-container").classList.remove("hidden");
+      } else {
+        errorText.textContent = "密码错误，请重试。";
       }
     }
 
-    mode = (mode === 'green') ? 'red' : 'green';
-    bar.style.background = (mode === 'green') ? 'green' : 'red';
-    status.innerText = getRandomMessage(mode);
+    let totalDuration, chanceTrigger, chanceAllow, releaseDuration;
+    let startTime;
+    let mode = 'green';
+    let bar, status, countdown;
+    let interval;
+    let inReleasePhase = false;
 
-    const duration = getPhaseDuration(currentPhase, mode);
-    startCountdown(duration, false);
-  }
-
-  function getPhaseDuration(phase, mode) {
-    const ranges = {
-      green: { early: [45, 60], mid: [15, 30], late: [5, 20] },
-      red: { early: [10, 20], mid: [20, 30], late: [30, 60] }
+    const greenMessages = {
+      early: ['慢慢撸，现在只是热身', '抓住你的鸡巴，从上到下撸动它'],
+      mid: ['继续保持，别太快', '平稳前进'],
+      late: ['坚持住，准备高潮', '深呼吸，保持冷静']
     };
-    const [min, max] = ranges[mode][phase];
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
 
-  function startCountdown(seconds, isFinal = false) {
-    let current = seconds;
-    countdown.innerText = current + " 秒";
-    bar.style.width = '100%';
+    const redMessages = {
+      early: ['暂停触碰，深呼吸'],
+      mid: ['保持冷静，等待信号'],
+      late: ['放松身体，控制自己']
+    };
 
-    interval = setInterval(() => {
-      current--;
-      countdown.innerText = current + " 秒";
-      bar.style.width = (current / seconds * 100) + "%";
+    function playBellSound() {
+      const bell = document.getElementById("bellSound");
+      bell.currentTime = 0;
+      bell.play().catch(error => {
+        console.error("铃铛音效播放失败:", error);
+      });
+    }
 
-      if (current <= 0) {
-        clearInterval(interval);
-        if (isFinal) {
-          status.innerText += "\n游戏结束。";
-        } else {
-          nextPhase();
+    function playReleaseSound() {
+      const release = document.getElementById("releaseSound");
+      release.currentTime = 0;
+      release.play().catch(error => {
+        console.error("释放音效播放失败:", error);
+      });
+    }
+
+    function startGame() {
+      totalDuration = parseInt(document.getElementById("totalTime").value) * 60 * 1000;
+      chanceTrigger = parseInt(document.getElementById("chanceTrigger").value);
+      chanceAllow = parseInt(document.getElementById("chanceAllow").value);
+      releaseDuration = parseInt(document.getElementById("releaseDuration").value);
+
+      bar = document.getElementById("bar");
+      status = document.getElementById("status");
+      countdown = document.getElementById("countdown");
+
+      const bell = document.getElementById("bellSound");
+      const release = document.getElementById("releaseSound");
+      bell.load();
+      release.load();
+
+      document.querySelector('.settings').classList.add('hidden');
+      startTime = Date.now();
+
+      status.innerText = "准备开始...";
+      nextPhase();
+    }
+
+    function getPhaseProgress() {
+      const elapsed = Date.now() - startTime;
+      const progress = elapsed / totalDuration;
+      if (progress <= 0.3) return 'early';
+      if (progress <= 0.8) return 'mid';
+      return 'late';
+    }
+
+    function getRandomMessage(mode) {
+      const phase = getPhaseProgress();
+      const messages = mode === 'green' ? greenMessages : redMessages;
+      const msgList = messages[phase];
+      return msgList[Math.floor(Math.random() * msgList.length)];
+    }
+
+    function nextPhase() {
+      if (interval) clearInterval(interval);
+
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const progress = elapsed / totalDuration;
+      const currentPhase = getPhaseProgress();
+
+      if (progress > 1 && currentPhase === 'late' && mode === 'green') {
+        if (Math.random() < chanceTrigger / 100) {
+          inReleasePhase = true;
+          const allow = Math.random() < chanceAllow / 100;
+          if (allow) {
+            status.innerText = '你可以释放了！';
+          } else {
+            status.innerText = '不太走运，不能释放';
+          }
+          playBellSound();
+          playReleaseSound(); // 释放阶段播放音频
+          startCountdown(releaseDuration, true);
+          return;
         }
       }
-    }, 1000);
-  }
-</script>
 
+      mode = (mode === 'green') ? 'red' : 'green';
+      bar.style.background = (mode === 'green') ? 'green' : 'red';
+      status.innerText = getRandomMessage(mode);
+      playBellSound();
+
+      const duration = getPhaseDuration(currentPhase, mode);
+      startCountdown(duration, false);
+    }
+
+    function getPhaseDuration(phase, mode) {
+      const ranges = {
+        green: { early: [45, 60], mid: [15, 30], late: [5, 20] },
+        red: { early: [10, 20], mid: [20, 30], late: [30, 60] }
+      };
+      const [min, max] = ranges[mode][phase];
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function startCountdown(seconds, isFinal = false) {
+      let current = seconds;
+      countdown.innerText = current + " 秒";
+      bar.style.width = '100%';
+
+      const start = Date.now();
+      const duration = seconds * 1000;
+
+      interval = setInterval(() => {
+        const elapsed = Date.now() - start;
+        const progress = 1 - elapsed / duration;
+        bar.style.width = (progress * 100) + "%";
+        countdown.innerText = Math.ceil(current) + " 秒";
+
+        current -= 1 / 60;
+
+        if (progress <= 0) {
+          clearInterval(interval);
+          bar.style.width = '0%';
+          if (isFinal) {
+            status.innerText += "\n游戏结束。";
+            playBellSound();
+            document.getElementById("releaseSound").pause(); // 停止释放音频
+            document.getElementById("releaseSound").currentTime = 0;
+          } else {
+            nextPhase();
+          }
+        }
+      }, 1000 / 60);
+    }
+  </script>
 </body>
 </html>
