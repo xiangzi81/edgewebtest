@@ -142,12 +142,11 @@
 </head>
 <body>
   <!-- 添加多个音频文件 -->
-<audio id="releaseSound1" src="/edgewebtest/assets/countdown1.mp3" preload="auto"></audio>
-<audio id="releaseSound2" src="/edgewebtest/assets/countdown2.mp3" preload="auto"></audio>
-<audio id="releaseSound3" src="/edgewebtest/assets/countdown3.mp3" preload="auto"></audio>
-<audio id="releaseSound4" src="/edgewebtest/assets/countdown4.mp3" preload="auto"></audio>
-<audio id="releaseSound5" src="/edgewebtest/assets/countdown5.mp3" preload="auto"></audio>
-
+  <audio id="releaseSound1" src="/edgewebtest/assets/countdown1.mp3" preload="auto" onloadedmetadata="storeDuration('releaseSound1')"></audio>
+  <audio id="releaseSound2" src="/edgewebtest/assets/countdown2.mp3" preload="auto" onloadedmetadata="storeDuration('releaseSound2')"></audio>
+  <audio id="releaseSound3" src="/edgewebtest/assets/countdown3.mp3" preload="auto" onloadedmetadata="storeDuration('releaseSound3')"></audio>
+  <audio id="releaseSound4" src="/edgewebtest/assets/countdown4.mp3" preload="auto" onloadedmetadata="storeDuration('releaseSound4')"></audio>
+  <audio id="releaseSound5" src="/edgewebtest/assets/countdown5.mp3" preload="auto" onloadedmetadata="storeDuration('releaseSound5')"></audio>
 
   <div class="container">
     <div id="auth-container">
@@ -178,14 +177,23 @@
     const correctPassword = "00000000";
     let audioContextInitialized = false;
 
+    // 存储音频时长的对象
+    const soundDurations = {};
+
     // 音频元素数组
     const releaseSounds = [
       document.getElementById("releaseSound1"),
       document.getElementById("releaseSound2"),
       document.getElementById("releaseSound3"),
       document.getElementById("releaseSound4"),
-      document.getElementById("releaseSound5"),
+      document.getElementById("releaseSound5")
     ];
+
+    // 存储音频时长
+    function storeDuration(soundId) {
+      const audio = document.getElementById(soundId);
+      soundDurations[soundId] = audio.duration || 16; // 默认16秒如果未加载
+    }
 
     function checkPassword() {
       const input = document.getElementById("passwordInput").value;
@@ -213,9 +221,16 @@
         sound.currentTime = 0;
       });
 
-      // 随机选择一个音频播放
+      // 随机选择一个音频
       const randomIndex = Math.floor(Math.random() * releaseSounds.length);
       const selectedSound = releaseSounds[randomIndex];
+      const soundId = selectedSound.id;
+      const duration = soundDurations[soundId] || 16; // 使用存储的时长或默认16秒
+
+      // 更新 releaseDuration 为音频时长 + 1秒
+      releaseDuration = Math.ceil(duration) + 1;
+
+      // 播放选中的音频
       selectedSound.play().catch(error => {
         console.error("释放音效播放失败:", error);
       });
@@ -287,7 +302,7 @@
           const allow = Math.random() < chanceAllow / 100;
           if (allow) {
             status.innerText = '你可以释放了！';
-            playReleaseSound(); // 随机播放音频
+            playReleaseSound(); // 随机播放音频并设置 releaseDuration
           } else {
             status.innerText = '不太走运，不能释放';
           }
@@ -314,7 +329,6 @@
       const phase = progress <= 0.3 ? 'early' : progress <= 0.8 ? 'mid' : 'late';
       const remainRatio = 1 - progress;
 
-      // 定义每个阶段的绿色模式和红色模式时间范围（秒）
       const phaseDurations = {
         early: {
           green: { min: 40, max: 50 },
