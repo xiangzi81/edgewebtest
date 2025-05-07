@@ -101,8 +101,7 @@
   </div>
 
   <script>
-    // ===== 密码验证逻辑 =====
-    const correctPassword = "00000000"; // 可自行更改密码
+    const correctPassword = "00000000";
 
     function checkPassword() {
       const input = document.getElementById("passwordInput").value;
@@ -116,15 +115,12 @@
       }
     }
 
-    // ===== 游戏逻辑 =====
     let mode = 'green';
     let totalDuration = 0;
     let startTime;
     let bar, status, countdown;
     let releaseTriggered = false;
     let chanceTrigger, chanceAllow, releaseDuration;
-    let isFirstPhase = true;
-    let phaseCount = 0;
 
     const greenMessages = {
       early: ['慢慢撸，现在只是热身', '现在，用手撸动你的鸡巴', '继续撸！', '抓住你的鸡巴，从上到下撸动它', 'MIAO'],
@@ -137,7 +133,6 @@
       late: ['完全停止', '控制自己', '准备结束', '放松身体', '保持耐心']
     };
 
-    // 红绿模式阶段时间定义
     const phaseTimes = {
       green: {
         early: [45, 60],
@@ -152,8 +147,9 @@
     };
 
     function playSound(id) {
-      document.getElementById(id).currentTime = 0;
-      document.getElementById(id).play();
+      const audio = document.getElementById(id);
+      audio.currentTime = 0;
+      audio.play();
     }
 
     function startGame() {
@@ -169,28 +165,60 @@
 
       document.querySelector('.settings').classList.add('hidden');
 
+      mode = 'green';
       bar.style.background = 'green';
       status.innerText = getRandomMessage(0, 'green');
-      isFirstPhase = true;
-      phaseCount = 0;
-      nextPhase();
+      startPhase();
+    }
+
+    function getPhase(progress) {
+      if (progress <= 0.3) return 'early';
+      if (progress <= 0.8) return 'mid';
+      return 'late';
     }
 
     function getRandomMessage(progress, mode) {
+      const phase = getPhase(progress);
       const messages = mode === 'green' ? greenMessages : redMessages;
-      if (progress <= 0.3) return messages.early[Math.floor(Math.random() * messages.early.length)];
-      if (progress <= 0.7) return messages.mid[Math.floor(Math.random() * messages.mid.length)];
-      return messages.late[Math.floor(Math.random() * messages.late.length)];
+      return messages[phase][Math.floor(Math.random() * messages[phase].length)];
     }
 
-    function nextPhase() {
-      if (releaseTriggered) return;
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
 
+    function startPhase() {
+      const elapsed = Date.now() - startTime;
+      const progress = elapsed / totalDuration;
+      const phase = getPhase(progress);
+      const [min, max] = phaseTimes[mode][phase];
+      const duration = getRandomInt(min, max);
+      bar.style.background = mode;
+      status.innerText = getRandomMessage(progress, mode);
+      countdownPhase(duration, phase);
+    }
+
+    function countdownPhase(seconds, currentPhase, final = false) {
+      let current = seconds;
+      let interval = setInterval(() => {
+        bar.style.width = (current / seconds) * 100 + '%';
+        countdown.innerText = current + ' 秒';
+
+        if (current <= 5 && current > 0) playSound('beep');
+
+        if (--current < 0) {
+          clearInterval(interval);
+          handlePhaseEnd(currentPhase);
+        }
+      }, 1000);
+    }
+
+    function handlePhaseEnd(currentPhase) {
       const elapsed = Date.now() - startTime;
       const progress = elapsed / totalDuration;
 
-      if (elapsed >= totalDuration) {
-        if (mode === 'green' && Math.random() < chanceTrigger / 100) {
+      if (mode === 'green' && currentPhase === 'late') {
+        if (!releaseTriggered && Math.random() < chanceTrigger / 100) {
           releaseTriggered = true;
           const allow = Math.random() < chanceAllow / 100;
           if (allow) {
@@ -206,46 +234,9 @@
         }
       }
 
-      if (!isFirstPhase) {
-        mode = mode === 'green' ? 'red' : 'green';
-      }
-      isFirstPhase = false;
-
-      bar.style.background = mode === 'green' ? 'green' : 'red';
-      status.innerText = getRandomMessage(progress, mode);
-      const remainRatio = 1 - elapsed / totalDuration;
-
-      phaseCount++;
-      let duration;
-      if (phaseCount === 1) {
-        duration = getRandomInt(phaseTimes[mode].early[0], phaseTimes[mode].early[1]);
-      } else if (phaseCount === 2) {
-        duration = getRandomInt(phaseTimes[mode].mid[0], phaseTimes[mode].mid[1]);
-      } else if (phaseCount === 3) {
-        duration = getRandomInt(phaseTimes[mode].late[0], phaseTimes[mode].late[1]);
-      }
-
-      countdownPhase(duration, mode);
-    }
-
-    function countdownPhase(seconds, currentMode, finalPhase = false) {
-      let current = seconds;
-      let interval = setInterval(() => {
-        bar.style.width = (current / seconds) * 100 + '%';
-        countdown.innerText = current + ' 秒';
-
-        if (current <= 5 && current > 0) playSound('beep');
-
-        if (--current < 0) {
-          clearInterval(interval);
-          if (!finalPhase) nextPhase();
-          else status.innerText = '游戏结束';
-        }
-      }, 1000);
-    }
-
-    function getRandomInt(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
+      // 切换模式并继续
+      mode = mode === 'green' ? 'red' : 'green';
+      startPhase();
     }
   </script>
 </body>
