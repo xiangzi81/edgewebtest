@@ -1,6 +1,6 @@
 #progress-container {
   width: 100%;
-  max-width: 800px; /* 增加进度条长度，从 500px 改为 800px */
+  max-width: 1000px; /* 从 800px 增加到 1000px，使进度条更长 */
   margin-top: 1em;
 }
 #progress {
@@ -10,10 +10,12 @@
   border-radius: 20px;
   overflow: hidden;
   box-sizing: border-box;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* 添加阴影，增加美观度 */
 }
 #bar {
   height: 100%;
   width: 100%;
   background: green;
-  transition: width 0.1s linear; /* 缩短 transition 时间，确保更平滑 */
+  transition: width 0.1s linear;
+  border-radius: 20px; /* 确保进度条内部圆角一致 */
 }
