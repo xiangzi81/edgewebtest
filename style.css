@@ -1,106 +1,19 @@
-body {
-  font-family: 'Segoe UI', Arial, sans-serif;
-  margin: 0;
-  padding: 20px;
-  background: linear-gradient(135deg, #1a1a1a, #2c2c2c); /* 渐变背景 */
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-}
-
-.container {
-  max-width: 500px;
+#progress-container {
   width: 100%;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(5px); /* 毛玻璃效果 */
+  max-width: 800px; /* 增加进度条长度，从 500px 改为 800px */
+  margin-top: 1em;
 }
-
-h1, h2 {
-  text-align: center;
-  color: #00f2ff;
-}
-
-.settings {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-label {
-  font-size: 1.1em;
-  color: #ddd;
-}
-
-input {
-  padding: 8px;
-  font-size: 1em;
-  border: none;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-button {
-  padding: 10px;
-  font-size: 1.1em;
-  background: #00f2ff;
-  color: #111;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-button:hover {
-  background: #00c4cc;
-}
-
 #progress {
   width: 100%;
   height: 40px;
-  margin: 20px 0;
+  background: #555;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.2);
   overflow: hidden;
+  box-sizing: border-box;
 }
-
 #bar {
   height: 100%;
   width: 100%;
-  transition: width 1s linear;
-}
-
-#status {
-  font-size: 1.8em;
-  margin: 20px 0;
-  color: #00f2ff;
-  text-shadow: 0 0 5px rgba(0, 242, 255, 0.5);
-}
-
-#countdown {
-  font-size: 2.5em;
-  font-weight: bold;
-}
-
-/* 响应式设计 */
-@media (max-width: 600px) {
-  .container {
-      padding: 15px;
-  }
-  input, button {
-      font-size: 0.9em;
-  }
-  #status {
-      font-size: 1.5em;
-  }
-  #countdown {
-      font-size: 2em;
-  }
+  background: green;
+  transition: width 0.1s linear; /* 缩短 transition 时间，确保更平滑 */
 }
