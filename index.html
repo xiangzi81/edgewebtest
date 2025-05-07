@@ -23,6 +23,7 @@
     }
     label, input {
       margin: 5px;
+      display: block;
     }
     #progress-container {
       width: 100%;
@@ -101,7 +102,7 @@
 
   <script>
     // ===== 密码验证逻辑 =====
-    const correctPassword = "00000000"; // 可自行更改密码，其实密码可以在这里看见，我只是不希望别人使用这个网站，但是你看到这个密码就用吧。
+    const correctPassword = "00000000"; // 可自行更改密码
 
     function checkPassword() {
       const input = document.getElementById("passwordInput").value;
@@ -134,6 +135,20 @@
       early: ['暂停触碰', '放松一下', '等待信号', '深吸一口气', '稍作停顿'],
       mid: ['保持冷静', '停止动作', '稍作休息', '控制呼吸', '等待时机'],
       late: ['完全停止', '控制自己', '准备结束', '放松身体', '保持耐心']
+    };
+
+    // 红绿模式阶段时间定义
+    const phaseTimes = {
+      green: {
+        early: [45, 60],
+        mid: [15, 30],
+        late: [5, 20]
+      },
+      red: {
+        early: [10, 20],
+        mid: [20, 30],
+        late: [30, 60]
+      }
     };
 
     function playSound(id) {
@@ -203,15 +218,11 @@
       phaseCount++;
       let duration;
       if (phaseCount === 1) {
-        duration = getRandomInt(45, 60);
+        duration = getRandomInt(phaseTimes[mode].early[0], phaseTimes[mode].early[1]);
       } else if (phaseCount === 2) {
-        duration = getRandomInt(20, 45);
+        duration = getRandomInt(phaseTimes[mode].mid[0], phaseTimes[mode].mid[1]);
       } else if (phaseCount === 3) {
-        duration = getRandomInt(5, 20);
-      } else {
-        duration = mode === 'green'
-          ? getRandomInt(10, Math.max(10, 60 * remainRatio))
-          : getRandomInt(5, Math.max(5, 30 * remainRatio));
+        duration = getRandomInt(phaseTimes[mode].late[0], phaseTimes[mode].late[1]);
       }
 
       countdownPhase(duration, mode);
