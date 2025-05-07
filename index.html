@@ -141,7 +141,17 @@
   </style>
 </head>
 <body>
-  <audio id="releaseSound" src="/edgewebtest/assets/countdown.mp3" preload="auto"></audio>
+  <!-- 添加多个音频文件 -->
+  <audio id="releaseSound1" src="/edgewebtest/assets/countdown1.mp3" preload="auto"></audio>
+  <audio id="releaseSound2" src="/edgewebtest/assets/countdown2.mp3" preload="auto"></audio>
+  <audio id="releaseSound3" src="/edgewebtest/assets/countdown3.mp3" preload="auto"></audio>
+  <audio id="releaseSound3" src="/edgewebtest/assets/countdown4.mp3" preload="auto"></audio>
+  <audio id="releaseSound3" src="/edgewebtest/assets/countdown5.mp3" preload="auto"></audio>
+  <audio id="releaseSound3" src="/edgewebtest/assets/countdown6.mp3" preload="auto"></audio>
+  <audio id="releaseSound3" src="/edgewebtest/assets/countdown7.mp3" preload="auto"></audio>
+  <audio id="releaseSound3" src="/edgewebtest/assets/countdown8.mp3" preload="auto"></audio>
+  <audio id="releaseSound3" src="/edgewebtest/assets/countdown9.mp3" preload="auto"></audio>
+  <audio id="releaseSound3" src="/edgewebtest/assets/countdown10.mp3" preload="auto"></audio>
 
   <div class="container">
     <div id="auth-container">
@@ -172,6 +182,20 @@
     const correctPassword = "00000000";
     let audioContextInitialized = false;
 
+    // 音频元素数组
+    const releaseSounds = [
+      document.getElementById("releaseSound1"),
+      document.getElementById("releaseSound2"),
+      document.getElementById("releaseSound3"),
+      document.getElementById("releaseSound4"),
+      document.getElementById("releaseSound5"),
+      document.getElementById("releaseSound6"),
+      document.getElementById("releaseSound7"),
+      document.getElementById("releaseSound8"),
+      document.getElementById("releaseSound9"),
+      document.getElementById("releaseSound10")
+    ];
+
     function checkPassword() {
       const input = document.getElementById("passwordInput").value;
       const errorText = document.getElementById("auth-error");
@@ -186,16 +210,22 @@
 
     function initializeAudioContext() {
       if (!audioContextInitialized) {
-        const release = document.getElementById("releaseSound");
-        release.load();
+        releaseSounds.forEach(sound => sound.load());
         audioContextInitialized = true;
       }
     }
 
     function playReleaseSound() {
-      const release = document.getElementById("releaseSound");
-      release.currentTime = 0;
-      release.play().catch(error => {
+      // 停止所有音频播放
+      releaseSounds.forEach(sound => {
+        sound.pause();
+        sound.currentTime = 0;
+      });
+
+      // 随机选择一个音频播放
+      const randomIndex = Math.floor(Math.random() * releaseSounds.length);
+      const selectedSound = releaseSounds[randomIndex];
+      selectedSound.play().catch(error => {
         console.error("释放音效播放失败:", error);
       });
     }
@@ -266,7 +296,7 @@
           const allow = Math.random() < chanceAllow / 100;
           if (allow) {
             status.innerText = '你可以释放了！';
-            playReleaseSound();
+            playReleaseSound(); // 随机播放音频
           } else {
             status.innerText = '不太走运，不能释放';
           }
@@ -296,32 +326,29 @@
       // 定义每个阶段的绿色模式和红色模式时间范围（秒）
       const phaseDurations = {
         early: {
-          green: { min: 30, max: 50 }, // 绿色模式：40-50秒
-          red: { min: 10, max: 20 }    // 红色模式：20-30秒
+          green: { min: 40, max: 50 },
+          red: { min: 20, max: 30 }
         },
         mid: {
-          green: { min: 20, max: 30 }, // 绿色模式：30-40秒
-          red: { min: 15, max: 25 }    // 红色模式：15-25秒
+          green: { min: 30, max: 40 },
+          red: { min: 15, max: 25 }
         },
         late: {
-          green: { min: 10, max: 20 }, // 绿色模式：20-30秒
-          red: { min: 10, max: 25 }    // 红色模式：10-20秒
+          green: { min: 20, max: 30 },
+          red: { min: 10, max: 20 }
         }
       };
 
-      // 获取当前阶段和模式的范围
       const durationRange = phaseDurations[phase][mode];
 
-      // 对于phaseCount > 3，动态调整范围
       if (phaseCount > 3) {
         const baseMin = durationRange.min * remainRatio;
         const baseMax = durationRange.max * remainRatio;
-        const min = Math.max(5, Math.floor(baseMin)); // 最小值不低于5秒
-        const max = Math.max(min, Math.floor(baseMax)); // 最大值不低于最小值
+        const min = Math.max(5, Math.floor(baseMin));
+        const max = Math.max(min, Math.floor(baseMax));
         return Math.floor(Math.random() * (max - min + 1)) + min;
       }
 
-      // 前三个阶段使用固定范围
       return Math.floor(Math.random() * (durationRange.max - durationRange.min + 1)) + durationRange.min;
     }
 
@@ -346,8 +373,10 @@
           bar.style.width = '0%';
           if (isFinal) {
             status.innerText += "\n游戏结束。";
-            document.getElementById("releaseSound").pause();
-            document.getElementById("releaseSound").currentTime = 0;
+            releaseSounds.forEach(sound => {
+              sound.pause();
+              sound.currentTime = 0;
+            });
           } else {
             nextPhase();
           }
