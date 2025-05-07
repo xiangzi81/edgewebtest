@@ -3,11 +3,11 @@ let audioContextInitialized = false;
 
 // 预设音频时长（秒），手动设置
 const soundDurations = {
-  releaseSound1: 5,
-  releaseSound2: 10,
-  releaseSound3: 15,
-  releaseSound4: 20,
-  releaseSound5: 25
+  releaseSound1: 15,
+  releaseSound2: 15,
+  releaseSound3: 16,
+  releaseSound4: 15,
+  releaseSound5: 18
 };
 
 // 音频元素数组
