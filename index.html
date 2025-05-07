@@ -53,31 +53,69 @@
     .hidden {
       display: none;
     }
+    #auth-container input {
+      padding: 10px;
+      font-size: 1em;
+    }
+    #auth-container button {
+      padding: 10px 20px;
+      font-size: 1em;
+      margin-top: 10px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <div class="settings">
-    <label>总时间（分钟）:</label><input id="totalTime" type="number" value="10" min="1" max="60" />
-    <label>释放机会概率（%）:</label><input id="chanceTrigger" type="number" value="30" min="0" max="100" />
-    <label>释放成功概率（%）:</label><input id="chanceAllow" type="number" value="50" min="0" max="100" />
-    <label>释放倒计时（秒）:</label><input id="releaseDuration" type="number" value="15" min="5" max="60" />
-    <button onclick="startGame()">开始</button>
+
+  <!-- 密码验证部分 -->
+  <div id="auth-container">
+    <h2>请输入密码进入</h2>
+    <input type="password" id="passwordInput" placeholder="密码" />
+    <button onclick="checkPassword()">进入</button>
+    <p id="auth-error" style="color:red;"></p>
   </div>
 
-  <div id="progress-container">
-    <div id="status">等待开始...</div>
-    <div id="progress"><div id="bar"></div></div>
-  </div>
-  <div id="countdown"></div>
+  <!-- 游戏主界面 -->
+  <div id="main-container" class="hidden">
+    <div class="settings">
+      <label>总时间（分钟）:</label><input id="totalTime" type="number" value="10" min="1" max="60" />
+      <label>释放机会概率（%）:</label><input id="chanceTrigger" type="number" value="30" min="0" max="100" />
+      <label>释放成功概率（%）:</label><input id="chanceAllow" type="number" value="50" min="0" max="100" />
+      <label>释放倒计时（秒）:</label><input id="releaseDuration" type="number" value="15" min="5" max="60" />
+      <button onclick="startGame()">开始</button>
+    </div>
 
-  <!-- 音效部分 -->
-  <audio id="beep" src="https://freesound.org/data/previews/316/316914_5111566-lq.mp3"></audio>
-  <audio id="startGreen" src="https://freesound.org/data/previews/256/256113_4486188-lq.mp3"></audio>
-  <audio id="startRed" src="https://freesound.org/data/previews/178/178110_3248244-lq.mp3"></audio>
-  <audio id="releaseAllowed" src="https://freesound.org/data/previews/522/522631_11304677-lq.mp3"></audio>
-  <audio id="releaseDenied" src="https://freesound.org/data/previews/320/320655_5260877-lq.mp3"></audio>
+    <div id="progress-container">
+      <div id="status">等待开始...</div>
+      <div id="progress"><div id="bar"></div></div>
+    </div>
+    <div id="countdown"></div>
+
+    <!-- 音效部分 -->
+    <audio id="beep" src="https://freesound.org/data/previews/316/316914_5111566-lq.mp3"></audio>
+    <audio id="startGreen" src="https://freesound.org/data/previews/256/256113_4486188-lq.mp3"></audio>
+    <audio id="startRed" src="https://freesound.org/data/previews/178/178110_3248244-lq.mp3"></audio>
+    <audio id="releaseAllowed" src="https://freesound.org/data/previews/522/522631_11304677-lq.mp3"></audio>
+    <audio id="releaseDenied" src="https://freesound.org/data/previews/320/320655_5260877-lq.mp3"></audio>
+  </div>
 
   <script>
+    // ===== 密码验证逻辑 =====
+    const correctPassword = "********"; // 可自行更改密码
+
+    function checkPassword() {
+      const input = document.getElementById("passwordInput").value;
+      const errorText = document.getElementById("auth-error");
+
+      if (input === correctPassword) {
+        document.getElementById("auth-container").style.display = "none";
+        document.getElementById("main-container").classList.remove("hidden");
+      } else {
+        errorText.textContent = "密码错误，请重试。";
+      }
+    }
+
+    // ===== 游戏逻辑 =====
     let mode = 'green';
     let totalDuration = 0;
     let startTime;
@@ -85,10 +123,10 @@
     let releaseTriggered = false;
     let chanceTrigger, chanceAllow, releaseDuration;
     let isFirstPhase = true;
-    let phaseCount = 0; // 阶段计数器
+    let phaseCount = 0;
 
     const greenMessages = {
-      early: ['保持节奏', '轻柔触碰', '慢慢来', '感受每一刻', '控制速度'],
+      early: ['慢慢来，现在只是热身', '轻柔触碰', '慢慢来', '感受每一刻', '控制速度'],
       mid: ['继续保持', '专注感觉', '别太快', '平稳前进', '享受过程'],
       late: ['接近边缘', '坚持住', '深呼吸', '保持冷静', '准备高潮']
     };
@@ -119,7 +157,7 @@
       bar.style.background = 'green';
       status.innerText = getRandomMessage(0, 'green');
       isFirstPhase = true;
-      phaseCount = 0; // 重置阶段计数器
+      phaseCount = 0;
       nextPhase();
     }
 
@@ -162,22 +200,18 @@
       status.innerText = getRandomMessage(progress, mode);
       const remainRatio = 1 - elapsed / totalDuration;
 
-      phaseCount++; // 增加阶段计数
+      phaseCount++;
       let duration;
       if (phaseCount === 1) {
-        // 第一阶段：45-60秒
         duration = getRandomInt(45, 60);
       } else if (phaseCount === 2) {
-        // 第二阶段：20-45秒
         duration = getRandomInt(20, 45);
       } else if (phaseCount === 3) {
-        // 第三阶段：5-20秒
         duration = getRandomInt(5, 20);
       } else {
-        // 后续阶段：基于剩余时间比例
         duration = mode === 'green'
-          ? getRandomInt(10, 60 * remainRatio)
-          : getRandomInt(5, 30 * remainRatio);
+          ? getRandomInt(10, Math.max(10, 60 * remainRatio))
+          : getRandomInt(5, Math.max(5, 30 * remainRatio));
       }
 
       countdownPhase(duration, mode);
@@ -189,7 +223,7 @@
         bar.style.width = (current / seconds) * 100 + '%';
         countdown.innerText = current + ' 秒';
 
-        if (current <= 3 && current > 2) playSound('beep');
+        if (current <= 5 && current > 0) playSound('beep');
 
         if (--current < 0) {
           clearInterval(interval);
