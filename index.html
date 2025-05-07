@@ -35,24 +35,25 @@
     }
     #progress-container {
       width: 100%;
-      max-width: 1000px; /* 更长的进度条 */
       margin-top: 1em;
+      padding: 0 10px;
+      box-sizing: border-box;
     }
     #progress {
       width: 100%;
-      height: 40px;
+      height: 50px;
       background: #555;
-      border-radius: 20px;
+      border-radius: 25px;
       overflow: hidden;
       box-sizing: border-box;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* 添加阴影 */
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
     }
     #bar {
       height: 100%;
       width: 100%;
       background: green;
       transition: width 0.1s linear;
-      border-radius: 20px; /* 保持圆角一致 */
+      border-radius: 25px;
     }
     #status {
       font-size: 1.5em;
@@ -79,8 +80,8 @@
   </style>
 </head>
 <body>
-  <audio id="bellSound" src="assets/countdown.mp3" preload="auto"></audio>
-  <audio id="releaseSound" src="assets/countdown.mp3" preload="auto"></audio>
+  <!-- 仅保留释放环节音频 -->
+  <audio id="releaseSound" src="/edgewebtest/assets/countdown.mp3" preload="auto"></audio>
 
   <div id="auth-container">
     <h2>请输入密码进入</h2>
@@ -107,15 +108,34 @@
 
   <script>
     const correctPassword = "00000000";
+    let audioContextInitialized = false;
+
     function checkPassword() {
       const input = document.getElementById("passwordInput").value;
       const errorText = document.getElementById("auth-error");
       if (input === correctPassword) {
         document.getElementById("auth-container").style.display = "none";
         document.getElementById("main-container").classList.remove("hidden");
+        initializeAudioContext();
       } else {
         errorText.textContent = "密码错误，请重试。";
       }
+    }
+
+    function initializeAudioContext() {
+      if (!audioContextInitialized) {
+        const release = document.getElementById("releaseSound");
+        release.load();
+        audioContextInitialized = true;
+      }
+    }
+
+    function playReleaseSound() {
+      const release = document.getElementById("releaseSound");
+      release.currentTime = 0;
+      release.play().catch(error => {
+        console.error("释放音效播放失败:", error);
+      });
     }
 
     let totalDuration, chanceTrigger, chanceAllow, releaseDuration;
@@ -124,6 +144,8 @@
     let bar, status, countdown;
     let interval;
     let inReleasePhase = false;
+    let phaseCount = 0;
+    let isFirstPhase = true;
 
     const greenMessages = {
       early: ['慢慢撸，现在只是热身', '抓住你的鸡巴，从上到下撸动它'],
@@ -137,22 +159,6 @@
       late: ['放松身体，控制自己']
     };
 
-    function playBellSound() {
-      const bell = document.getElementById("bellSound");
-      bell.currentTime = 0;
-      bell.play().catch(error => {
-        console.error("铃铛音效播放失败:", error);
-      });
-    }
-
-    function playReleaseSound() {
-      const release = document.getElementById("releaseSound");
-      release.currentTime = 0;
-      release.play().catch(error => {
-        console.error("释放音效播放失败:", error);
-      });
-    }
-
     function startGame() {
       totalDuration = parseInt(document.getElementById("totalTime").value) * 60 * 1000;
       chanceTrigger = parseInt(document.getElementById("chanceTrigger").value);
@@ -163,29 +169,24 @@
       status = document.getElementById("status");
       countdown = document.getElementById("countdown");
 
-      const bell = document.getElementById("bellSound");
-      const release = document.getElementById("releaseSound");
-      bell.load();
-      release.load();
-
       document.querySelector('.settings').classList.add('hidden');
       startTime = Date.now();
 
       status.innerText = "准备开始...";
+      phaseCount = 0;
+      isFirstPhase = true;
       nextPhase();
     }
 
     function getPhaseProgress() {
       const elapsed = Date.now() - startTime;
-      const progress = elapsed / totalDuration;
-      if (progress <= 0.3) return 'early';
-      if (progress <= 0.8) return 'mid';
-      return 'late';
+      return elapsed / totalDuration;
     }
 
     function getRandomMessage(mode) {
-      const phase = getPhaseProgress();
+      const progress = getPhaseProgress();
       const messages = mode === 'green' ? greenMessages : redMessages;
+      const phase = progress <= 0.3 ? 'early' : progress <= 0.8 ? 'mid' : 'late';
       const msgList = messages[phase];
       return msgList[Math.floor(Math.random() * msgList.length)];
     }
@@ -196,40 +197,47 @@
       const now = Date.now();
       const elapsed = now - startTime;
       const progress = elapsed / totalDuration;
-      const currentPhase = getPhaseProgress();
 
-      if (progress > 1 && currentPhase === 'late' && mode === 'green') {
+      if (progress > 1 && mode === 'green') {
         if (Math.random() < chanceTrigger / 100) {
           inReleasePhase = true;
           const allow = Math.random() < chanceAllow / 100;
           if (allow) {
             status.innerText = '你可以释放了！';
+            playReleaseSound(); // 仅在释放环节播放
           } else {
             status.innerText = '不太走运，不能释放';
           }
-          playBellSound();
-          playReleaseSound(); // 释放阶段播放音频
           startCountdown(releaseDuration, true);
           return;
         }
       }
 
-      mode = (mode === 'green') ? 'red' : 'green';
-      bar.style.background = (mode === 'green') ? 'green' : 'red';
-      status.innerText = getRandomMessage(mode);
-      playBellSound();
+      if (!isFirstPhase) {
+        mode = mode === 'green' ? 'red' : 'green';
+      }
+      isFirstPhase = false;
 
-      const duration = getPhaseDuration(currentPhase, mode);
+      bar.style.background = mode === 'green' ? 'green' : 'red';
+      status.innerText = getRandomMessage(mode);
+
+      phaseCount++;
+      const duration = getPhaseDuration();
       startCountdown(duration, false);
     }
 
-    function getPhaseDuration(phase, mode) {
-      const ranges = {
-        green: { early: [45, 60], mid: [15, 30], late: [5, 20] },
-        red: { early: [10, 20], mid: [20, 30], late: [30, 60] }
-      };
-      const [min, max] = ranges[mode][phase];
-      return Math.floor(Math.random() * (max - min + 1)) + min;
+    function getPhaseDuration() {
+      if (phaseCount === 1) {
+        return Math.floor(Math.random() * (60 - 45 + 1)) + 45;
+      } else if (phaseCount === 2) {
+        return Math.floor(Math.random() * (45 - 20 + 1)) + 20;
+      } else if (phaseCount === 3) {
+        return Math.floor(Math.random() * (20 - 5 + 1)) + 5;
+      }
+      const remainRatio = 1 - getPhaseProgress();
+      return mode === 'green'
+        ? Math.floor(Math.random() * (60 - 10 + 1)) + 10 * remainRatio
+        : Math.floor(Math.random() * (30 - 5 + 1)) + 5 * remainRatio;
     }
 
     function startCountdown(seconds, isFinal = false) {
@@ -253,8 +261,7 @@
           bar.style.width = '0%';
           if (isFinal) {
             status.innerText += "\n游戏结束。";
-            playBellSound();
-            document.getElementById("releaseSound").pause(); // 停止释放音频
+            document.getElementById("releaseSound").pause();
             document.getElementById("releaseSound").currentTime = 0;
           } else {
             nextPhase();
